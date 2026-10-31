@@ -4,6 +4,11 @@ This project explores a compact, 3D-printable, open-source machine that physical
 orders trading cards. It is intended to be reproducible by a hobbyist with a
 normal FDM printer, commodity hardware, and an existing computer.
 
+CardSorter is available under the [MIT License](LICENSE). Original code, CAD
+designs, printable model exports, and documentation are free to use, modify, and
+redistribute, including for commercial use, with the copyright and license notice
+preserved. See [licensing details](docs/LICENSING.md) for third-party material.
+
 Two physical designs are being retained for development. They share the same
 feeder, imaging stage, electronics, and local software:
 
