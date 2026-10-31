@@ -1,0 +1,18 @@
+# Local third-party repository snapshots retain their own Git metadata and are
+# reference material, not CardSorter source.
+references/hobbyist-projects/*/
+
+# Local build and analysis outputs
+build/
+dist/
+coverage/
+*.log
+
+# Common development artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+__pycache__/
+.pytest_cache/
+node_modules/
