@@ -1,101 +1,100 @@
 # CardSorter
 
-This project explores a compact, 3D-printable, open-source machine that physically
-orders trading cards. It is intended to be reproducible by a hobbyist with a
-normal FDM printer, commodity hardware, and an existing computer.
+This project explores a reliable, 3D-printable, open-source machine that physically
+orders trading cards at a predictable throughput. It is intended to be
+reproducible by a hobbyist with a normal FDM printer, commodity purchased
+hardware, and an existing computer.
 
 CardSorter is available under the [MIT License](LICENSE). Original code, CAD
 designs, printable model exports, and documentation are free to use, modify, and
 redistribute, including for commercial use, with the copyright and license notice
 preserved. See [licensing details](docs/LICENSING.md) for third-party material.
 
-Two physical designs are being retained for development. They share the same
-feeder, imaging stage, electronics, and local software:
+The primary design is the **R8 reliable sorter**: eight outputs plus reject, with
+the card gripped from pickup to pocket and moving at one constant speed.
 
 ```text
-modular hopper
+500-card hopper, constant-force follower
       ↓
-tested single-card separator
+pick roller + torque-limited brake roller
       ↓
-feed-roller handoff
+constant-speed transport nips (thickness + slip sensing)
       ↓
-card sensors and camera
+two strobed captures in motion, recognition pipelined
       ↓
-gravity drop
+indexed router
       ↓
-route selector
-      ├─ SMALL / S4: 4 outputs + reject, compact cassette array
-      └─ MEDIUM: 8 outputs + reject, radial removable bins
+8 pockets + default reject pocket
 ```
 
-The machine will perform a true physical sort, not merely scan cards or divide
-them into broad value categories. A small number of outputs is sufficient because
-the software can order a collection over multiple distribution/radix-sort passes.
+The machine performs a true physical sort, not merely scanning cards or dividing
+them into broad categories. Eight outputs are enough because the software orders a
+collection over a few planned distribution passes.
 
 ## Current status
 
-This repository now contains the consolidated design discussion, hobbyist-project
-research, and scaffolding for the mechanical, electrical, firmware, and software
-work. No mechanical design has been validated yet. The first milestone is
-deliberately smaller than a full sorter: prove a standalone feeder can gently
-dispense exactly one card at a time for many thousands of cycles.
+This repository contains the design record, hobbyist-project research, a tested
+sort-planning model, bench-starter printable parts, and a purchased-parts price
+estimate. No mechanism has been validated. The first milestone is deliberately
+smaller than a full sorter: prove a standalone feeder can deliver exactly one card
+per cadence slot, gently, for many thousands of cycles.
 
-The [2026-10-31 design review](docs/reviews/2026-10-31_DESIGN_REVIEW.md) revises the
-default to scan-first planned sorting, finite-capacity cassettes, and a friction/
-retard feeder baseline compared against vacuum. A tested mathematical simulator
-now exists; recognition, firmware, CAD, and physical performance remain unproven.
+The [2026-10-31 reliability rework](docs/reviews/2026-10-31_RELIABILITY_REWORK.md)
+made predictable, consistent operation the top priority after card safety. It
+replaced the gravity-drop S4 and medium designs with R8. The earlier
+[design review](docs/reviews/2026-10-31_DESIGN_REVIEW.md) established scan-first
+planned sorting and finite-capacity handling, which R8 keeps.
 
 ## Design documents
 
-- [designs/SMALL_SORTER.md](designs/SMALL_SORTER.md) — S4 compact four-way candidate
-- [designs/S4_UNIFIED_CARD_PATH.md](designs/S4_UNIFIED_CARD_PATH.md) — layer-by-layer integrated S4 architecture
-- [designs/MEDIUM_SORTER.md](designs/MEDIUM_SORTER.md) — eight-way radial turret
-- [DESIGN_PRINCIPLES.md](DESIGN_PRINCIPLES.md) — product goals and engineering constraints
-- [ARCHITECTURE.md](ARCHITECTURE.md) — shared system layout, modules, and alternatives
-- [FEEDER.md](FEEDER.md) — friction/retard baseline and vacuum challenger
-- [SORTING_ALGORITHM.md](SORTING_ALGORITHM.md) — local identification and multipass sorting
+- [designs/R8_RELIABLE_SORTER.md](designs/R8_RELIABLE_SORTER.md) — primary design
+- [DESIGN_PRINCIPLES.md](DESIGN_PRINCIPLES.md) — priorities and engineering rules
+- [ARCHITECTURE.md](ARCHITECTURE.md) — topology, timing model, modules, alternatives
+- [FEEDER.md](FEEDER.md) — pick/brake roller feeder and comparison candidates
+- [SORTING_ALGORITHM.md](SORTING_ALGORITHM.md) — identification and multipass sorting
 - [ROADMAP.md](ROADMAP.md) — staged prototypes, beginning with feeder reliability
+- [docs/BOM_PRICING.md](docs/BOM_PRICING.md) — purchased-parts price estimate
+- [docs/DESIGN_ASSURANCE.md](docs/DESIGN_ASSURANCE.md) — evidence, failure modes, test matrix, and design gates
+- [hardware/prototypes/FEEDER_COMPARISON.md](hardware/prototypes/FEEDER_COMPARISON.md) — first physical bench plan
+- [hardware/cad/bench-starter](hardware/cad/bench-starter) — first printable parts
+- [software/sort_model.py](software/sort_model.py) — reproducible sorting and capacity comparison
 - [docs/hobbyist/README.md](docs/hobbyist/README.md) — hobbyist-project research,
   cost barriers, user needs, and engineering lessons
 - [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) — where future project work belongs
 - [docs/LICENSING.md](docs/LICENSING.md) — project and third-party licensing status
-- [docs/DESIGN_ASSURANCE.md](docs/DESIGN_ASSURANCE.md) — evidence, failure modes, test matrix, and design gates
-- [hardware/prototypes/FEEDER_COMPARISON.md](hardware/prototypes/FEEDER_COMPARISON.md) — first physical bench plan
-- [software/sort_model.py](software/sort_model.py) — reproducible sorting and capacity comparison
 
-## Retained designs
-
-| Design | Normal outputs | Intended form | Main tradeoff |
-|---|---:|---|---|
-| Small / S4 Compact | 4 + reject | Near-vertical core over a compact detachable cassette array | Smaller core target; more traversals for many jobs |
-| Medium | 8 + reject | Vertical core above removable radial wedge bins | Fewer passes and less reloading, but a wider base |
-
-The S4 is the compact product candidate. Its earlier
-stacked/nested output layout remains a prototype comparison, while a compact 2×2
-or shallow-fan cassette arrangement is the leading configuration. The medium
-sorter is a co-equal workflow candidate because fewer passes may justify the larger
-footprint. Compare both by operator attention and job time. Neither has validated
-dimensions yet.
+Superseded designs, kept for the record:
+[S4 compact](designs/SMALL_SORTER.md),
+[S4 unified card path](designs/S4_UNIFIED_CARD_PATH.md), and
+[medium radial](designs/MEDIUM_SORTER.md).
 
 ## Decision snapshot
 
 - **Purpose:** return the cards themselves in a requested deterministic order.
-- **Topology:** compact vertical, gravity-driven core.
-- **Outputs:** small has four destinations; medium has eight; both require reject.
-- **Separation:** friction/retard baseline; stationary vacuum edge peel must earn selection in comparative tests.
-- **Transport:** rollers take over immediately; gravity does most subsequent movement.
+- **Priority:** card safety and correctness, then predictable throughput and
+  positive control. Size and cost are secondary.
+- **Outputs:** eight normal pockets plus a default reject pocket, 500-card target.
+- **Separation:** pick roller plus torque-limited brake roller; retard pad and
+  vacuum remain bench comparisons.
+- **Transport:** driven nips from pickup to pocket at one constant speed; no free
+  falls.
+- **Recognition:** pipelined beside the transport; a late answer sends the card to
+  reject. Name and exact-printing accuracy have separate acceptance gates.
+- **Health:** slip, signal, and timing trends with cycle-count maintenance.
 - **Software:** local/offline-first, with optional network updates and enrichment.
-- **Construction:** printable geometry, editable CAD, replaceable modules, and commodity parts.
-- **First build:** a standalone, instrumented single-card feeder test rig.
-- **Workflow:** scan-first order planning, capacity-aware cassette handling, and explicit recovery.
-- **Recognition:** name and exact-printing accuracy have separate acceptance gates.
+- **Workflow:** scan-first order planning, capacity-aware pocket handling, and
+  explicit recovery.
+- **Construction:** purchased shafts, bearings, belts, rollers, and extrusion for
+  precision; printed brackets and guides; editable CAD.
+- **First build:** a standalone, instrumented feeder bench.
 
 ## Project areas
 
 | Area | Purpose |
 |---|---|
-| [designs](designs) | Retained small and medium physical concepts |
+| [designs](designs) | Primary R8 design and superseded alternatives |
 | [docs/hobbyist](docs/hobbyist) | Dated research, cost barriers, and source ledger |
+| [docs/reviews](docs/reviews) | Design reviews and decision records |
 | [hardware](hardware) | CAD, electronics, and physical prototypes |
 | [firmware](firmware) | Real-time motor, sensor, and safety control |
 | [software](software) | Local recognition, sort planning, and operator interface |

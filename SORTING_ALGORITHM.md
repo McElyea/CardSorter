@@ -134,9 +134,10 @@ selector movement and operator handling must be included in measured comparisons
 
 ## Finite capacity and operator visits
 
-A job of N cards can span many cassettes. Initial capacity candidates are 150, 200,
-and 250 cards, subject to thickness and sleeve measurements. Do not require each
-output to contain the entire job.
+A job of N cards can span many cassettes. The R8 target is 500 cards per hopper and
+pocket, subject to thickness and sleeve measurements; the 150–250-card figures
+below come from the earlier S4 comparison. Do not require each output to contain
+the entire job.
 
 Before accepting another card, reserve capacity for its destination. Stop safely
 before a full route, close and label its cassette, replace it, and resume the same
@@ -148,9 +149,11 @@ At 0.3 mm assumed thickness, 200 cards occupy 60 mm and 1,000 occupy 300 mm alon
 the stacking axis, before walls, follower, clearance, or curl. These are arithmetic
 examples, not validated dimensions.
 
-With a 200-card input at 3 seconds per cycle, input depletion alone requires
-attention within ten minutes; full outputs or faults can require attention sooner.
-Six traversals of 1,000 cards consume five machine-hours before operator delays.
+With a 200-card input at 3 seconds per cycle (earlier S4), input depletion alone
+requires attention within ten minutes, and six traversals of 1,000 cards take five
+machine-hours. With R8's 500-card hopper at a target 1 card/s, the hopper lasts
+about 8 minutes, and four traversals of 1,000 cards take about 67 minutes. Full
+outputs or faults can require attention sooner in either case.
 
 Record card cycles, input loads, output chunk removals, mid-route replacements,
 minutes between required visits, active human minutes, staging footprint, and
@@ -176,8 +179,8 @@ Respond in graded steps:
 
 1. **Consistent:** the evidence supports the expected key at the requested identity
    level. Release to the planned route.
-2. **Inconclusive:** hold the card in the imaging nip and re-image, including the
-   alternate lighting state, up to a documented retry limit.
+2. **Inconclusive:** use the second capture taken in motion under the alternate
+   lighting state. The R8 transport does not stop to re-image.
 3. **Still inconclusive, not contradictory:** route to reject and continue the plan.
    The card is resolved later as a mid-pass reject (below).
 4. **Contradictory:** the evidence confidently identifies a different key, or two
@@ -186,9 +189,9 @@ Respond in graded steps:
 Verification must be measured against confusable neighbors, not only clean
 matches. For exact-printing jobs, accepting a same-art reprint because it
 resembles the expected card is a silent ordering error. Report verification false
-accepts separately from open-identification accuracy. Holding the card for
-re-imaging depends on the imaging nip retaining control; see
-[designs/S4_UNIFIED_CARD_PATH.md](designs/S4_UNIFIED_CARD_PATH.md).
+accepts separately from open-identification accuracy. Verification must finish
+within the route deadline; a late answer is treated as step 3. See
+[designs/R8_RELIABLE_SORTER.md](designs/R8_RELIABLE_SORTER.md).
 
 ## Mid-pass rejects
 

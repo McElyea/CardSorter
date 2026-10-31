@@ -1,140 +1,141 @@
 # System Architecture
 
-## Shared topology
+Revised 2026-10-31 by the [reliability rework](docs/reviews/2026-10-31_RELIABILITY_REWORK.md).
+The primary design is the [R8 reliable sorter](designs/R8_RELIABLE_SORTER.md): eight
+normal outputs plus reject, with positive card control and a fixed cadence.
 
-The project retains two sizes built around one compact vertical sorting engine.
-The small model has four normal destinations; the medium model has eight. Both
-need a reject path.
+## Topology
 
 ```text
-        ┌───────────────────┐
-        │  removable hopper │
-        └─────────┬─────────┘
-                  ↓
-        interchangeable separator
-                  ↓
-          powered feed rollers
-                  ↓
-      entry sensor → camera → exit sensor
-                  ↓
-           short gravity chute
-                  ↓
-       lightweight route selector
-                  ↓
-       removable output magazines
+        ┌──────────────────────────────┐
+        │ 500-card hopper,             │
+        │ constant-force follower      │
+        └──────────────┬───────────────┘
+                       ↓
+     pick roller (own drive) + torque-limited brake roller
+                       ↓
+     transport nips, one motor, belt-synchronized, constant speed
+        ├─ Hall idler: thickness / double check
+        ├─ encoder idler: slip measurement
+        └─ beam trigger → two strobed captures in motion
+                       ↓
+     buffer section: card keeps moving while the host recognizes it
+                       ↓
+     router: pre-positioned, independently indexed
+                       ↓
+     driven entry into one of 8 pockets or the default reject pocket
 ```
 
-The selector may be a rotating or tilting printed chute, flap, or finger. It moves
-only a light part through a short distance. The exact geometry is not yet frozen;
-the architectural decision is one compact selector rather than a long row of
-independent powered gates.
-
-Reject is a real additional route, used for low-confidence identification, detected
-doubles, unexpected timing, calibration/test cards, and other exceptions. The
-mechanism should prefer reject—or stop feeding—when routing is not known in time.
-
-The two retained arrangements are specified separately:
-
-- [designs/SMALL_SORTER.md](designs/SMALL_SORTER.md): the S4 compact candidate,
-  four-way selector with a 2×2 or shallow-fan cassette array plus reject.
-- [designs/S4_UNIFIED_CARD_PATH.md](designs/S4_UNIFIED_CARD_PATH.md): the proposed
-  integrated cassette, peel-nip, dual-nip imaging, and selector architecture.
-- [designs/MEDIUM_SORTER.md](designs/MEDIUM_SORTER.md): eight-way radial turret
-  with removable wedge bins plus reject.
+Every arrow is a driven transfer. A card is always held by at least one nip until
+its trailing edge enters the pocket mouth.
 
 ## Card flow
 
-1. The modular hopper presents a consistent stack face to the feeder.
-2. The selected separator isolates one card. Friction/retard is the baseline;
-   stationary vacuum edge peel is a challenger under comparison.
-3. Feed rollers capture the card, pickup disengages (or vacuum vents), and the
-   rollers establish controlled speed and spacing.
-4. Sensors confirm entry while the card pauses in an edge-supported imaging bay.
-5. The host identifies the card and requests a route. The controller confirms the
-   selector position before releasing the card: no confirmed route, no release.
-6. The feed roller advances the card into a short gravity path, where the selector
-   directs it into a normal sort magazine or reject.
+1. The hopper's constant-force follower presents the stack with the same force
+   whether it holds 500 cards or one.
+2. At each cadence slot, the controller engages the pick roller. The brake roller,
+   on a torque limiter, lets one card pass and holds back a second.
+3. The first transport nip captures the card; the pick roller stops. The card now
+   moves at the transport's constant speed.
+4. A Hall-sensed idler measures thickness. An encoder on an undriven idler measures
+   card speed against motor speed (slip).
+5. A beam sensor triggers two strobed captures as the card passes: diffuse light
+   for identification and raking light for foil and glare.
+6. The card continues through a buffer at least two cadence slots long while the
+   host identifies it and returns a route, tagged with the card's `cycle_id`.
+7. The router moves to the route only after the answer arrives, and an independent
+   index sensor confirms the position before the card's leading edge reaches it.
+   No answer by the deadline: the router stays at reject. Router position unknown:
+   the transport stops, with every card still held.
+8. The router drives the card into its pocket. An arrival sensor confirms entry and
+   the pocket count increments.
 
-Gravity should do most of the transport after separation. Powered sections exist
-where positive control is needed for handoff, imaging, and spacing—not as a
-machine-length conveyor.
+## Timing model
+
+```text
+cadence T = card pitch / transport speed
+route deadline = time from capture to router entry  (≥ 2 T)
+router move budget = T − time for one card to pass through the router
+```
+
+Initial test targets, not claims: transport 250 mm/s, card pitch 250 mm, so
+T = 1 s and 3,600 cards/hour at full cadence. A card that misses its deadline costs
+one reject, not a stopped machine. Throughput changes only when the controller
+deliberately skips a slot (pick retry, full pocket, operator pause), and every
+skipped slot is logged.
 
 ## Modules and interfaces
 
-### Feeder module
+### Feeder
 
-Contains stack presentation, interchangeable pickup/retard features, feed rollers,
-and early card sensors. The vacuum variant adds shoe, valve, and pump connections.
-It must be usable as a standalone comparison rig. See [FEEDER.md](FEEDER.md).
+Hopper, constant-force follower, pick roller with its own drive, brake roller with
+torque limiter, first transport nip, and early sensors. It must work as a
+standalone bench rig. See [FEEDER.md](FEEDER.md).
 
-### Imaging module
+### Transport and imaging
 
-Provides a fixed card plane, controlled lighting, a camera, and entry/exit sensing.
-Its mechanical interface should allow camera or lighting upgrades without changing
-the feeder or selector. Image processing occurs on the host computer.
+One stepper drives all transport nip shafts through a GT2 belt. Nip spacing is
+shorter than the card's length in the travel direction. The imaging station
+provides fixed edge guides, two strobed LED banks, and a global-shutter camera.
+Image processing happens on the host.
 
-### Routing module
+### Router
 
-Contains one fast, low-inertia selector and position feedback or a homing feature.
-Its route count and output geometry depend on the selected design. Reject should
-be easy to empty and visually distinct from normal outputs.
+Two candidates, chosen by the card bend test:
 
-### Storage modules
+- **R-A, driven rotary head:** a short guided head carrying its own exit nip
+  rotates to one of nine positions (8 + reject) on a turntable bearing, indexed by
+  a slotted wheel and sensor. One positioning motor, one head drive motor.
+- **R-B, gated transport:** a straight or gently curved transport with spring-return
+  gates. With no gate energized, the card runs to the reject pocket at the end of
+  the line, so loss of power or a missing command fails safe. Needs card bending.
 
-Hoppers and output magazines are detachable accessories. The current S4 direction
-uses one keyed cassette interface for input and output so a group can move between
-passes without loose handling or accidental reversal. Different depths can support
-portable test stacks, ordinary use, or bulk use without enlarging the core engine.
-Card guides and magazine mouths should be replaceable for later sleeve or
-card-format support.
+### Pockets
 
-Collection size is independent of cassette size. Prototype 150–250-card capacities
-with a safe full-bin stop and ordered replacement chunks. Reserve space before
-releasing a card and preserve route/pass/chunk order across replacements. Do not
-assume every output must hold the whole collection.
+Nine removable pockets (8 normal + reject), 500-card target, each with a
+constant-force follower on linear guides and a full switch. Software also counts
+cards and reserves capacity before release, so the switch is a backup. The
+stacking mechanism is open; see the R8 design.
 
 ### Control split
 
 ```text
-host computer                       microcontroller
-────────────────                    ─────────────────────────
-local card recognition     USB      feed cycle and interlocks
-local/updateable database  ⇄        motors, valve, and selector
-sort plan and pass state             entry/exit/double sensors
-operator reload prompts              jam and position events
+host computer                       microcontroller board
+────────────────                    ─────────────────────────────
+local card recognition     USB      cadence, pick, transport, router
+local/updateable database  ⇄        Hall, slip, beams, index, full
+sort plan and pass state             interlocks, e-stop, strobe timing
+operator prompts, health trends      cycle_id event stream
 ```
 
-A small command/event vocabulary is enough initially: `FEED`, `ROUTE n`, `STOP`,
-`CARD_READY`, `CARD_ENTERED_CAMERA`, `CARD_EXITED_CAMERA`, `JAM`, and
-`SELECTOR_POSITION`. The protocol is conceptual until the feeder timing is known.
-Every per-card command and event must carry cycle_id; late or mismatched commands
-cannot authorize release. Recognized key and expected sequence position must also
-agree before normal-route release, with destination capacity reserved.
+A 3D-printer-class board with an RP2040 and four TMC2209 drivers covers the four
+steppers; an I²C expander adds inputs. Initial protocol vocabulary:
+`START cadence`, `STOP`, `ROUTE cycle_id n`; events `PICKED`, `THICKNESS`,
+`CAPTURED`, `ROUTE_CONFIRMED`, `ARRIVED pocket`, `SLOT_SKIPPED reason`, `SLIP`,
+`JAM`, `FULL pocket`. Every per-card message carries `cycle_id`; a missing or
+mismatched route never authorizes a normal route. Recognized key and expected
+sequence position must agree before a normal route, with capacity reserved.
 
-## Packaging strategy
+### Health monitoring
 
-Both designs should be desktop appliances with detachable storage. The earlier
-small-engine target of roughly 100 × 120 × 200 mm remains a useful lower bound for
-the mechanism alone, but it is not a credible envelope for useful storage and jam
-access. The complete S4 target is approximately 190–220 mm wide, 200–240 mm deep,
-and 300–350 mm tall. The medium concept initially targets roughly 250 × 250 ×
-400 mm. These are design directions, not released dimensions.
+Per cycle: pick-to-capture time, slip, Hall signal, capture quality, route latency,
+and retries. Per job: trends against the machine's own history, a reference card at
+job start, and maintenance prompts by cycle count.
 
-Printed modules should reference a compact commodity structural datum rather than
-depending on a large flat print. A short 2040 aluminum-extrusion spine is the
-current recommendation to test; an all-printed alternative may be retained if it
-proves equally straight and serviceable.
+## Packaging
+
+A 2020 aluminum-extrusion frame carries the shafts and the router. Printed parts
+hold guides, sensors, and covers. Layout estimates for R-A: nine 500-card pockets
+around the router suggest roughly 450–500 mm diameter and about 500 mm height;
+250-card pockets roughly 350 mm. These are directions, not released dimensions.
 
 ## Alternatives not retained as primary designs
 
-| Alternative | Advantage | Why it is not a primary design |
+| Alternative | Advantage | Why it is not primary |
 |---|---|---|
-| XY gantry with moving vacuum head | Routes directly to many arbitrary positions | Every card pays for lift, X/Y travel, placement, and return; large, slow, and mechanically demanding |
-| Long conveyor with many diverter gates | High throughput and many one-pass categories | Desk-length frame, belts, multiple gates, and more alignment/wear than this compact project needs |
-| Binary-only sorter | Smallest possible gate and two bins | Roughly twice as many passes as four-way sorting, creating excessive operator handling for large key spaces |
-| Rotating output cassette | Extremely simple fixed card path | Repeatedly accelerates increasingly heavy card stacks; less attractive than moving a few grams of chute |
-
-The small design captures much of binary's compactness while halving its pass
-count. The medium radial design exchanges a wider base for fewer passes. Both keep
-the hopper and magazines modular so the sorting engine is not dictated by how many
-cards an owner wants sitting in a bin.
+| Gravity-drop S4 and medium radial ([designs](designs)) | Small, few motors, cheap | Timing and landing vary with card condition; stop-for-capture ties throughput to recognition latency |
+| Vacuum edge peel feeder | Possibly gentle separation | Pump, valve, dust, and noise; must win the bench comparison first |
+| XY gantry with moving vacuum head | Routes to many positions | Every card pays for lift, travel, placement, and return |
+| Binary-only sorter | Smallest gate and two bins | Many more passes and operator loads |
+| Rotating output cassette rack | Fixed card path | Accelerates heavy card stacks on every route change |
+| Automatic recirculation | Unattended multipass jobs | Large mechanism; deferred until the single-pass machine is proven |

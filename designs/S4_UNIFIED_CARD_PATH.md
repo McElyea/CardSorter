@@ -1,5 +1,9 @@
 # S4 Unified Card Path
 
+> **Superseded 2026-10-31.** The [reliability rework](../docs/reviews/2026-10-31_RELIABILITY_REWORK.md)
+> replaced the S4 with [R8](R8_RELIABLE_SORTER.md). Its function-combining rules and
+> list of functions that must stay independent still apply to R8.
+
 ## Status
 
 Candidate integrated architecture for the S4 Compact sorter. This document

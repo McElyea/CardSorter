@@ -1,5 +1,9 @@
 # Medium Card Sorter
 
+> **Superseded 2026-10-31.** The [reliability rework](../docs/reviews/2026-10-31_RELIABILITY_REWORK.md)
+> replaced this gravity-drop radial design with [R8](R8_RELIABLE_SORTER.md), which
+> keeps its eight outputs and radial layout but drives each card into its pocket.
+
 ## Status
 
 Retained design; preferred when reducing sort passes is worth a larger desktop

@@ -1,5 +1,9 @@
 # Design Review — 2026-10-31
 
+> Later the same day, the [reliability rework](2026-10-31_RELIABILITY_REWORK.md)
+> changed the feeder expectation, capacity target, and primary design. The sorting
+> and recovery decisions below still stand.
+
 ## Outcome
 
 The supplied critique identified material gaps in the September design. Revise

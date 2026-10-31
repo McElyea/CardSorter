@@ -1,93 +1,119 @@
 # Single-Card Feeder
 
-Revised 2026-10-31. Feeder selection is open. Use a friction pickup with a retard pad
-or roller as the comparison baseline. Stationary vacuum edge peel is a challenger
-that must earn its extra pump, valve, tubing, maintenance, and noise.
+Revised 2026-10-31 by the [reliability rework](docs/reviews/2026-10-31_RELIABILITY_REWORK.md).
+The expected feeder is a pick roller with its own drive plus a torque-limited brake
+roller, fed by a constant-force stack follower. A retard pad and stationary vacuum
+edge peel remain comparisons; each must beat the expected feeder to replace it.
 
-## Shared requirement
+## Requirement
 
-Deliver one card gently to the controlled imaging path, with observable entry,
-exit, and double-feed evidence. The first physical work is a common benchtop fixture,
-not an integrated sorter. See the
+Deliver exactly one card per cadence slot into the transport, gently, with a
+repeatable pick time and observable entry, exit, thickness, and slip evidence.
+The first physical work is a benchtop fixture, not an integrated sorter. See the
 [comparison bench plan](hardware/prototypes/FEEDER_COMPARISON.md).
+
+Predictability is part of the requirement: the time from pick command to the card
+reaching the first transport nip must vary little enough that the card lands in
+its cadence slot every time.
 
 ## Candidates
 
 | Candidate | Separation and handoff | Main tradeoff to measure |
 |---|---|---|
-| F1 baseline | Soft friction pickup, adjustable retard pad, transport nip | Simple parts; pressure, finish, and wear sensitivity |
-| F2 baseline variant | Pickup plus compliant or torque-limited retard roller | Less sliding contact possible; extra calibration and parts |
-| V1 challenger | Fixed recessed vacuum shoe, passive retard, roller handoff | Potentially gentler separation; pump, release, dust, and noise cost |
+| **F2 expected** | Pick roller plus brake roller on a torque limiter, then transport nip | The standard of high-reliability sheet feeders; brake roller sourcing and fit |
+| F1 comparison | Pick roller plus adjustable retard pad | Fewer parts; more sensitive to pressure, finish, and wear |
+| V1 comparison | Fixed recessed vacuum shoe, passive retard, roller handoff | Possibly gentler; pump, valve, dust, and noise cost |
 
-Use the same hopper, card cohort, transport path, sensors, and scoring. Record
-adjustments and unsuccessful configurations rather than reporting only each
+How the brake roller works: it sits against the pick roller on a torque limiter.
+With one card between them, friction from the moving card exceeds the limiter and
+the brake roller turns with it. With two cards, card-to-card friction is lower than
+the limiter, so the brake roller holds the second card back. It tolerates variation
+in thickness and friction better than a fixed gap.
+
+Aftermarket scanner pick/brake roller sets (for example, those for Fujitsu/Ricoh
+fi-7000-series scanners) are the first source to test. They include the torque
+limiter but will need printed adapters. Record fit, wear, and limiter torque.
+
+Use the same hopper, card cohort, transport path, sensors, and scoring for every
+candidate. Record adjustments and unsuccessful configurations, not only each
 candidate's best demonstration. A mature paper-feeding principle is a credible
-baseline, not proof that it is safe for trading cards.
+starting point, not proof that it is safe for trading cards.
 
-The vacuum concept remains worth testing: a distributed port draws only a leading
-edge into a shallow recess, then a roller takes control and the valve vents. A
-1–2 mm recess is an initial experiment variable, not an approved bend or tolerance.
-Vacuum does not transport the whole card.
+## Stack presentation
 
-## Presentation and transport
+| Option | How | Tradeoff |
+|---|---|---|
+| **P1 expected** | Constant-force spring follower on linear guides | Same force full or empty; guide friction must stay low |
+| P2 alternative | Motorized lift with a top-of-stack sensor | Force set by control; one more motor and sensor |
 
-Compare near-vertical and inclined stack presentation, follower force, and empty,
-half-full, and full stack loads. Keep shoe, retard, and roller contact surfaces
-small and replaceable. A simple coupon fixture should permit adjustments without
-reprinting the full chassis.
+Measure pick force and pick time at one card, half full, and full. An ordinary
+compression spring or gravity follower changes force by two orders of magnitude
+across a 500-card stack and is not acceptable for the expected design.
 
-The one-motor, dual-nip proposal in
-[designs/S4_UNIFIED_CARD_PATH.md](designs/S4_UNIFIED_CARD_PATH.md) depends on preventing
-the upper pickup from acquiring another card while the lower nip releases the
-current card. Vacuum presentation was proposed as that clutch. A friction variant
-needs independently demonstrated pickup disengagement, a clutch/lift mechanism,
-or a separate pickup drive. Leave the drive interface modular until this is proven.
+## Pickup drive
+
+The pick roller has its own stepper and runs only during a cadence slot. This
+replaces the earlier one-motor dual-nip proposal, which needed vacuum as a clutch.
+The pick roller must stop or freewheel once the first transport nip captures the
+card, so it never pulls the next card early.
 
 ## Double detection
 
-Compare a compliant follower roller with analog Hall displacement sensing against
-a suitable through-transmission ultrasonic double-sheet detector. A generic
-ultrasonic distance module is not equivalent.
+The Hall-sensed idler is the default detector: a magnet on the first transport
+idler arm and an analog Hall sensor measure displacement, which tracks thickness.
+A through-transmission ultrasonic double-sheet detector is an optional bench
+comparison. Industrial units cost roughly $285–1,520 (see
+[docs/BOM_PRICING.md](docs/BOM_PRICING.md)), so it joins the design only if the
+Hall sensor fails the challenge matrix. A generic ultrasonic distance module is not
+equivalent.
 
 Evaluate singles, deliberately aligned doubles, offset doubles, different stock,
 foils, curl, and later sleeves. Log false accepts, false rejects, calibration drift,
-detector cost, and contact damage. Optical edge timing is useful for passage and
-skew, but cannot reliably identify perfectly aligned doubles. Vacuum pressure
-diagnoses acquisition and leakage; it is not independent proof of a single card.
+and contact damage. Optical edge timing is useful for passage and skew, but cannot
+reliably identify perfectly aligned doubles.
 
-Industrial precedent supports testing both rollers and ultrasound:
+Industrial precedent supports both the brake roller and ultrasound:
 [Ricoh's scanner layout](https://www.pfu.ricoh.com/global/scanners/erg/cleaning-7030.html)
 includes pick/brake rollers and ultrasonic sensors. Its
 [archived detection conditions](https://www.pfu.ricoh.com/global/scanners/erg/conditions-7030.html)
 also describe thickness and material restrictions and false positives on thick
 plastic cards. These are reasons to characterize trading-card stock, not to assume
-a scanner sensor will work unchanged.
+a scanner part will work unchanged.
 
-## Common cycle
+## Slip and wear
+
+An AS5600 magnetic encoder on an undriven transport idler measures how fast cards
+actually move. Compare it with commanded motor speed on every cycle. Rising slip is
+the early warning for roller wear or contamination; set a maintenance threshold
+from bench data.
+
+## Cycle
 
 ```text
-READY
-  -> acquisition enabled (friction pickup or vacuum peel)
-  -> leading edge confirmed
-  -> transport nip captures card
-  -> acquisition disengaged / vacuum vented
-  -> double check and trailing edge confirmed
-  -> destination passage accounted for
-  -> READY
+SLOT
+  -> pick roller on
+  -> leading edge at first nip (pick time recorded)
+  -> transport nip captures card; pick roller off
+  -> thickness accepted; slip recorded
+  -> trailing edge clears feeder
+  -> card handed to transport with its cycle_id
+NEXT SLOT
 ```
 
-Missing, contradictory, early, or late events stop the cycle. Assign one cycle_id
-at acquisition; do not start another until the current card is reconciled.
+A missing, contradictory, early, or late event stops the cycle. A pick that misses
+its slot is retried in the next slot and logged as a skipped slot. Assign one
+`cycle_id` at pick; never start another pick until the current card is accounted
+for.
 
 ## Selection gate
 
-First establish settings on sacrificial calibration cards, then compare candidates
-on held-out cohorts at matched speed and stack conditions. Promote vacuum only if
-it provides a repeatable improvement in damage, silent doubles, interventions, or
-stock range sufficient to justify measured cost, maintenance, noise, and complexity.
-Record the tradeoff before choosing a winner.
+Establish settings on sacrificial calibration cards, then compare candidates on
+held-out cohorts at matched speed and stack conditions. Score damage, silent
+doubles, interventions, pick-time spread, skipped slots, stock range, maintenance,
+cost, and noise. Replace F2 only with a candidate that is repeatably better on
+safety or predictability.
 
 The selected configuration must pass the 10,000-cycle ordinary-card milestone with
 zero undetected doubles and no observed damage, plus the separately reported
-challenge matrix. Detected jams, interventions, retries, and downtime remain visible;
-a convenient definition of 'successful cycle' must not erase failures.
+challenge matrix. Detected jams, interventions, retries, and skipped slots remain
+visible; a convenient definition of "successful cycle" must not erase failures.

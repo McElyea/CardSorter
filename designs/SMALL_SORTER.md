@@ -1,5 +1,9 @@
 # S4 Compact Card Sorter
 
+> **Superseded 2026-10-31.** The [reliability rework](../docs/reviews/2026-10-31_RELIABILITY_REWORK.md)
+> replaced this gravity-drop design with [R8](R8_RELIABLE_SORTER.md). It stays in
+> the record as the small, low-cost alternative and its rationale.
+
 ## Status
 
 Compact candidate, to be compared with the medium design on operator effort and

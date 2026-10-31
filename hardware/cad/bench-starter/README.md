@@ -4,6 +4,10 @@ First printable parts for the [feeder comparison bench](../../prototypes/FEEDER_
 and its capacity mockup. They check your printer and real card stacks before any
 feeder or sorter CAD exists. They are not validated sorter parts.
 
+The gauges were sized for the earlier 150–250-card capacity question. The R8
+design targets 500 cards; add `500` to `CAPACITIES` in `bench_starter.py` and
+regenerate to print a 500-card gauge (about 161 × 69 × 47 mm).
+
 ## Files
 
 | Part | Purpose | Size (mm) |
@@ -58,8 +62,8 @@ measure with calipers, and divide by 50. If it differs, change `CARD_T` in
 the stated count.
 
 Record how full each gauge feels, how easy the stack is to remove, and the
-footprint against the 150–250-card capacity question in the bench plan. Put
-results in [../../prototypes](../../prototypes).
+footprint, to inform the R8 pocket size (500-card target, 250 as the fallback).
+Put results in [../../prototypes](../../prototypes).
 
 ## Regenerating
 
