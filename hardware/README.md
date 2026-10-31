@@ -2,7 +2,8 @@
 
 Original CardSorter hardware work belongs here:
 
-- `cad` for editable source models, STEP exports, and printable meshes
+- `cad` for editable source models, STEP exports, and STL/3MF printable files
+  (see [cad/README.md](cad/README.md))
 - `electronics` for schematics, wiring, boards, and bills of materials
 - `prototypes` for fixture-specific notes, revisions, and measured results
 

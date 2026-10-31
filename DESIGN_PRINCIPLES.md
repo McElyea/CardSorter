@@ -39,7 +39,8 @@ using the same finite-capacity workflow.
   220 × 220 mm. Any exceptional larger part must be segmented and keyed.
 - Prefer support-free parts, a 0.4 mm nozzle, PLA/PETG, loose and documented
   tolerances, and orientations that do not put critical surfaces on supports.
-- Publish editable source CAD such as STEP in addition to printable meshes.
+- Publish native parametric source and STEP in addition to printable STL and
+  print-ready 3MF files. See [hardware/cad/README.md](hardware/cad/README.md).
 - Minimize unique fasteners and use common items such as M3 screws, heat-set
   inserts, readily available bearings, silicone tubing, and commodity motors.
 - Make wear surfaces and card-contact parts removable and inexpensive to replace.
