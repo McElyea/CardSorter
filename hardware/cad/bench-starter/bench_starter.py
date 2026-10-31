@@ -1,4 +1,5 @@
-"""Bench-starter printable parts: parametric source for STEP, STL, and 3MF exports.
+"""Bench-starter printable parts: parametric source for STEP, IGES, STL, 3MF, OBJ,
+and AMF exports.
 
 These are first-print parts for the feeder comparison bench and capacity mockups
 in hardware/prototypes/FEEDER_COMPARISON.md. They are not validated sorter parts.
@@ -14,6 +15,7 @@ rerun before trusting the stack gauges for capacity decisions.
 from pathlib import Path
 
 import cadquery as cq
+from OCP.IGESControl import IGESControl_Writer
 
 OUT = Path(__file__).resolve().parent
 REVISION = "r1"
@@ -102,15 +104,54 @@ def fit_coupon():
     return body
 
 
+MESH_TOL = (0.02, 0.1)   # linear (mm) and angular (rad) tessellation tolerance
+
+
+def export_iges(part, target):
+    """IGES in millimetres, written as trimmed surfaces (BRep mode)."""
+    writer = IGESControl_Writer("MM", 1)
+    writer.AddShape(part.val().wrapped)
+    writer.ComputeModel()
+    if not writer.Write(str(target)):
+        raise RuntimeError(f"IGES export failed: {target}")
+
+
+def export_obj(part, target):
+    """OBJ mesh with shared vertices so it stays watertight. OBJ has no unit field;
+    slicers read the values as millimetres."""
+    vertices, triangles = part.val().tessellate(*MESH_TOL)
+    index, points, faces = {}, [], []
+    for tri in triangles:
+        face = []
+        for i in tri:
+            v = vertices[i]
+            key = (round(v.x, 6), round(v.y, 6), round(v.z, 6))
+            if key not in index:
+                index[key] = len(points) + 1
+                points.append(key)
+            face.append(index[key])
+        if len(set(face)) == 3:
+            faces.append(face)
+    with open(target, "w", encoding="ascii", newline="\n") as f:
+        f.write(f"# {target.stem} - CardSorter bench starter, units mm\n")
+        f.writelines(f"v {x:.6f} {y:.6f} {z:.6f}\n" for x, y, z in points)
+        f.writelines(f"f {a} {b} {c}\n" for a, b, c in faces)
+
+
 def export(name, part):
     stem = f"cs_{name}_{REVISION}"
-    for folder, suffix in (("step", "step"), ("stl", "stl"), ("3mf", "3mf")):
-        (OUT / folder).mkdir(exist_ok=True)
-        target = OUT / folder / f"{stem}.{suffix}"
+    for suffix in ("step", "iges", "stl", "3mf", "obj", "amf"):
+        (OUT / suffix).mkdir(exist_ok=True)
+        target = OUT / suffix / f"{stem}.{suffix}"
         if suffix == "step":
             cq.exporters.export(part, str(target))
+        elif suffix == "iges":
+            export_iges(part, target)
+        elif suffix == "obj":
+            export_obj(part, target)
         else:
-            cq.exporters.export(part, str(target), tolerance=0.02, angularTolerance=0.1)
+            cq.exporters.export(part, str(target), tolerance=MESH_TOL[0],
+                                angularTolerance=MESH_TOL[1])
     box = part.val().BoundingBox()
     print(f"{stem}: {box.xlen:.1f} x {box.ylen:.1f} x {box.zlen:.1f} mm, "
           f"{part.val().Volume() / 1000:.1f} cm^3")

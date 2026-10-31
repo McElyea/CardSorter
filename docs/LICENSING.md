@@ -4,7 +4,7 @@ CardSorter is released under the [MIT License](../LICENSE), copyright (c) 2026
 Jon McElyea.
 
 Except where explicitly noted, this license applies to original CardSorter code,
-CAD designs, printable model exports (STEP, STL, and 3MF), and documentation in
+CAD designs, printable model exports (STEP, IGES, STL, 3MF, OBJ, and AMF), and documentation in
 this repository. Use, modification, redistribution, and commercial use are allowed
 under its terms. Preserve the copyright and permission notice in copies or
 substantial portions. The full license includes the warranty disclaimer.

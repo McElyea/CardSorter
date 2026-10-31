@@ -20,13 +20,23 @@ regenerate to print a 500-card gauge (about 161 × 69 × 47 mm).
 Each part is exported from [bench_starter.py](bench_starter.py), the parametric
 source, as:
 
-- `3mf/`: open this in Bambu Studio, PrusaSlicer, OrcaSlicer, or Cura.
-- `stl/`: the same geometry for any slicer.
-- `step/`: for editing in CAD. Not for printing.
+| Folder | Use it for |
+|---|---|
+| `3mf/` | **Start here.** Bambu Studio, PrusaSlicer, OrcaSlicer, Cura |
+| `stl/` | Any slicer, if 3MF won't open |
+| `obj/` | Older or general 3D software that doesn't take STL or 3MF |
+| `amf/` | Older PrusaSlicer or Slic3r setups |
+| `step/` | Editing in CAD (Fusion, FreeCAD, Onshape, SolidWorks). Not for printing |
+| `iges/` | Older CAD or CAM software that can't read STEP. Not for printing |
 
 All files are in millimetres and already in print orientation: flat on the bed,
 open side up. The 3MF files carry geometry, units, and orientation only. Print
 settings are below.
+
+There is no G-code. It has to be sliced for the specific printer, so take the
+3MF or STL and slice it on the printer's own software. If a slicer imports a
+part about 25 times too small or too large, it has assumed inches; rescale it to
+100% in millimetres.
 
 ## Print settings
 
